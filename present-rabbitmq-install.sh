@@ -1,36 +1,31 @@
 #!/bin/bash
 
-#Install prerequisites
+# Check for and install dependencies
+echo "Checking and installing dependencies..."
 sudo apt-get update
-sudo apt-get install wget apt-transport-https -y
+sudo apt-get install -y wget gnupg
 
-# Add RabbitMQ repository key
-wget -0- https://www.rabbitmq-release-signing-key.asc  | sudo apt-key add -
-
-#Add RabbitMQ Repository
-echo "deb https://dl.bintray.com/rabbitmq-erlang/debian focal erlang-22.x" | sudo tee /etc/apt/sources.list.d/rabbitmq.list
-
-#Install RabbitMQ Server
+# Download and install Erlang
+echo "Downloading and installing Erlang..."
+wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb
+sudo dpkg -i erlang-solutions_2.0_all.deb
 sudo apt-get update
-sudo apt-get install rabbitmq-server -y --fix-missing
+sudo apt-get install -y --allow-change-held-packages erlang
 
-#Enable RabbitMQ management plugin
-sudo rabbitmq-plugins enable rabbitmq_management webmachine rabbitmq_management_agent amqp_client rabbitmq_web_dispatch  rabbitmq_amqp1_0 rabbitmq_federation rabbitmq_federation_management rabbitmq_shovel  rabbitmq_shovel_management
+# Download and install RabbitMQ
+echo "Downloading and installing RabbitMQ..."
+wget https://github.com/rabbitmq/rabbitmq-server/releases/download/v3.9.7/rabbitmq-server_3.9.7-1_all.deb
+sudo dpkg -i rabbitmq-server_3.9.7-1_all.deb
+sudo apt-get -f install -y
 
-#set user and  Password fro RabbitMQ console
+# Enable RabbitMQ management plugin
+echo "Enabling RabbitMQ management plugin..."
+sudo rabbitmq-plugins --offline enable rabbitmq_management
 
-sudo rabbitmqctl add_user 'admin' 'admin'
+# Create admin user and grant permissions
+echo "Creating admin user..."
+sudo rabbitmqctl add_user admin admin
 sudo rabbitmqctl set_user_tags admin administrator
-sudo rabbitmqctl set_permissions -p / admin  ".*" ".*" ".*"
+sudo rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
 
-#start RabbitMQ server
-sudo systemctl start rabbitmq-server
-sudo rabbitmqctl start_app
-sudo rabbitmqctl set_policy ha "." '{"ha-mode":"all"}'
-
-#Display RabbitMQ status
-sudo systemctl status  rabbitmq-server
-
-# Exit the script
-exit 
-
+echo "Installation completed successfully!"
