@@ -10,17 +10,17 @@ echo "Downloading and installing Erlang..."
 wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb
 sudo dpkg -i erlang-solutions_2.0_all.deb
 sudo apt-get update
-sudo apt-get install -y erlang
+sudo apt-get install -y --allow-change-held-packages erlang
 
 # Download and install RabbitMQ
 echo "Downloading and installing RabbitMQ..."
 wget https://github.com/rabbitmq/rabbitmq-server/releases/download/v3.9.7/rabbitmq-server_3.9.7-1_all.deb
 sudo dpkg -i rabbitmq-server_3.9.7-1_all.deb
-sudo apt-get -f install
+sudo apt-get -f install -y
 
 # Enable RabbitMQ management plugin
 echo "Enabling RabbitMQ management plugin..."
-sudo rabbitmq-plugins enable rabbitmq_management
+sudo rabbitmq-plugins --offline enable rabbitmq_management
 
 # Create admin user and grant permissions
 echo "Creating admin user..."
