@@ -14,6 +14,7 @@ check_and_install "build-essential"
 check_and_install "erlang-nox"
 check_and_install "esl-erlang"
 check_and_install "socat"
+check_and_install "wget"
 
 # Download and install Erlang
 wget https://packages.erlang-solutions.com/erlang/debian/pool/esl-erlang_20.3-1~ubuntu~bionic_amd64.deb
@@ -25,7 +26,7 @@ sudo apt-get install -y esl-erlang
 sudo apt-get install -y rabbitmq-server
 
 # Enable RabbitMQ plugins
-sudo rabbitmq-plugins enable rabbitmq_management
+sudo rabbitmq-plugins enable rabbitmq_management  webmachine rabbitmq_management_agent amqp_client rabbitmq_web_dispatch  rabbitmq_amqp1_0 rabbitmq_federation rabbitmq_federation_management rabbitmq_shovel  rabbitmq_shovel_management
 
 # Create an admin user and set administrator tag and permissions
 sudo rabbitmqctl add_user admin your_password
