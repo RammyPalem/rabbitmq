@@ -17,9 +17,6 @@ check_and_install "socat"
 check_and_install "wget"
 
 # Download and install Erlang
-wget https://packages.erlang-solutions.com/erlang/debian/pool/esl-erlang_20.3-1~ubuntu~bionic_amd64.deb
-sudo dpkg -i esl-erlang_20.3-1~ubuntu~bionic_amd64.deb
-sudo apt-get update -y
 sudo apt-get install -y esl-erlang
 
 # Download and install RabbitMQ
