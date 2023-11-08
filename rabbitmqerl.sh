@@ -1,29 +1,19 @@
 #!/bin/bash
 
-# Function to check and install packages
-check_and_install() {
-  package_name="$1"
-  if ! dpkg -l | grep -q $package_name; then
-    echo "Installing $package_name..."
-    sudo apt-get install -y $package_name
-  fi
-}
+# Import the Erlang Solutions GPG key
+wget -O - https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc | sudo apt-key add -
 
-# Check and install Erlang and RabbitMQ dependencies
-check_and_install "build-essential"
-check_and_install "erlang-nox"
-check_and_install "esl-erlang"
-check_and_install "socat"
-check_and_install "wget"
+# Add the Erlang Solutions repository
+echo "deb https://packages.erlang-solutions.com/ubuntu focal contrib" | sudo tee /etc/apt/sources.list.d/erlang-solutions.list
 
-# Download and install Erlang
-sudo apt-get install -y esl-erlang
+# Update package lists
+sudo apt-get update
 
-# Download and install RabbitMQ
-sudo apt-get install -y rabbitmq-server
+# Install Erlang and RabbitMQ without prompts
+sudo apt-get install -y erlang-nox rabbitmq-server
 
 # Enable RabbitMQ plugins
-sudo rabbitmq-plugins enable rabbitmq_management  webmachine rabbitmq_management_agent amqp_client rabbitmq_web_dispatch  rabbitmq_amqp1_0 rabbitmq_federation rabbitmq_federation_management rabbitmq_shovel  rabbitmq_shovel_management
+sudo rabbitmq-plugins enable rabbitmq_management
 
 # Create an admin user and set administrator tag and permissions
 sudo rabbitmqctl add_user admin your_password
@@ -35,6 +25,3 @@ echo "[{rabbit, [{default_ha_params, [{ha_mode, 'all'}, {ha_sync_mode, 'automati
 
 # Restart RabbitMQ to apply the changes
 sudo service rabbitmq-server restart
-
-# Check RabbitMQ status
-sudo rabbitmqctl status
