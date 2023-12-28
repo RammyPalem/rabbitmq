@@ -1,0 +1,13 @@
+[Unit]
+Description=pgAdmin4
+After=network.target
+
+[Service]
+User=your_username
+Group=your_groupname
+WorkingDirectory=/opt/pgadmin/pgadmin4
+ExecStart=/opt/pgadmin/pgadmin4/bin/uwsgi --ini uwsgi.ini
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
