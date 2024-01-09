@@ -1,0 +1,123 @@
+Let’s create a pgadmin app folder under /opt directory.
+
+sudo mkdir -p /opt/pgadmin/
+Switch to root user
+
+sudo su -
+Create a python virtual environment and activate it. 
+
+python3 -m venv /opt/pgadmin/venv
+source /opt/pgadmin/venv/bin/activate
+Install pgadmin and uwsgi using the pip utility.
+
+pip install pgadmin4
+pip install uwsgi
+Create directories used by pgAdmin.
+
+mkdir /var/lib/pgadmin
+mkdir /var/log/pgadmin
+Run pgadmin's setup.py. Follow setup instructions until it's complete, and take note of your email and password created here.
+
+python3 /opt/pgadmin/venv/lib/python3.8/site-packages/pgadmin4/setup.py
+NOTE: Configuring authentication for SERVER mode.
+
+Enter the email address and password to use for the initial pgAdmin user account:
+
+Email address: pgadmin@example.com
+Password: 
+Retype password:
+pgAdmin 4 - Application Initialisation
+======================================
+Add user pgadmin. This user account will be used to run the pgAdmin processes.
+
+adduser --system --group --home /var/lib/pgadmin --disabled-login --shell /usr/sbin/nologin pgadmin
+Allow user pgadmin to access directories: /var/log/pgadmin, /var/lib/pgadmin and /opt/pgadmin
+
+chown -R pgadmin:pgadmin /var/log/pgadmin /var/lib/pgadmin/ /opt/pgadmin
+pgAdmin should be completely set up by now.
+
+Integrate uWSGI and pgAdmin
+Now, we're ready to integrate pgAdmin and uWSGI, creating a WSGI server that listens at UNIX socket /tmp/pgadmin.sock. Create a uWSGI configuration file called pgadmin-on-uwsgi.ini inside the project folder /opt/pgadmin/. Add  contents below in the uWSGI configuration file.
+
+vim /opt/pgadmin/pgadmin-on-uwsgi.ini
+[uwsgi]
+socket = /tmp/pgadmin4.sock
+chdir = /opt/pgadmin/venv/lib/python3.8/site-packages/pgadmin4/
+module = pgAdmin4:application
+threads = 20
+processes = 1
+wsgi-file = pgAdmin4.wsgi
+mount = /pgadmin4=pgAdmin4:app
+manage-script-name = true
+chmod-socket = 660
+Setup uWSGI to run as a service using systemd
+Let’s create a systemd service unit file. Creating a systemd unit file will allow Ubuntu’s init system to automatically start uWSGI and serve the pgadmin application whenever the server boots.
+
+Create a unit file called pgadmin-on-uwsgi.service within the /etc/systemd/system directory. Contents of the service file looks like below.
+
+vim /etc/systemd/system/pgadmin-on-uwsgi.service
+[Unit]
+Description=pgadmin4 on uWSGI
+Requires=network.target
+After=network.target
+[Service]
+User=pgadmin
+Group=www-data
+Environment="PATH=/opt/pgadmin/venv/bin"
+ExecStart=/opt/pgadmin/venv/bin/uwsgi --ini /opt/pgadmin/pgadmin-on-uwsgi.ini
+[Install]
+WantedBy=multi-user.target
+Start the uWSGI service created and enable it so that it starts at boot:
+
+systemctl start pgadmin-on-uwsgi.service
+systemctl enable pgadmin-on-uwsgi.service
+uWSGI service status can be checked with command below:
+
+systemctl status pgadmin-on-uwsgi.service
+Configuring Nginx to Proxy Requests
+The pgAdmin4 application server should now be up and running, waiting for requests on the socket file. Let’s configure Nginx to pass web requests to that socket using the uWSGI protocol.
+
+Begin by creating a server block in a new pgadmin4.conf configuration file in Nginx’s sites-available directory: /etc/nginx/sites-available/. Tell Nginx to listen on port 80, and respond to any server name (sent by the client in the Host header).Here is code snippet for nginx pgadmin4.conf file
+
+vim /etc/nginx/sites-available/pgadmin4.conf
+server {
+    listen 80;
+    server_name _;
+        location /pgadmin4/ {
+            include /etc/nginx/uwsgi_params;
+            uwsgi_pass unix:/tmp/pgadmin4.sock;
+    }
+}
+To enable the Nginx server block configuration just created, link the file to the sites-enabled directory and restart the Nginx process to read the new configuration.
+
+sudo ln -s /etc/nginx/sites-available/pgadmin4.conf /etc/nginx/sites-enabled/pgadmin4.conf
+sudo systemctl restart nginx
+You should now be able to navigate to pgadmin in your web browser with url - http://<ip_address>/pgadmin4:
+
+Data transfer can be encrypted by adding SSL/TLS support to the configuration. Also http requests can be redirected to https.
+
+After updating the pgadmin.conf to support encrypted stata transfer looks like below :
+
+server {
+    listen 80;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name _;
+    ssl_certificate /etc/nginx/server.crt;
+    ssl_certificate_key /etc/nginx/server.key;
+    ssl_session_cache builtin:1000 shared:SSL:10m;
+    ssl_protocols TLSv1.2;
+    ssl_ciphers HIGH:!aNULL:!eNULL:!EXPORT:!CAMELLIA:!DES:!MD5:!PSK:!RC4;
+    ssl_prefer_server_ciphers on;
+
+    location /pgadmin4/ {
+        include /etc/nginx/uwsgi_params;
+        uwsgi_pass unix:/tmp/pgadmin4.sock;
+    }
+}
+Conclusion
+Users can use reverse proxy servers to provide an interface between their clients and the pgAdmin server. It's simple to configure SSL/TLS support or to host pgAdmin in a subdirectory.
+
