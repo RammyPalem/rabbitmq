@@ -92,3 +92,34 @@ service { 'nginx':
   ensure => restarted,
   require => Service['uwsgi'],
 }
+
+
+///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+class pgadmin4_uwsgi {
+
+  # Define variables
+  $venv_path = '/data/pgadmin/venv' # Update with the correct path
+
+  # Ensure necessary packages are installed
+  package { ['python3-venv', 'python3-pip', 'libpq-dev', 'uwsgi']: 
+    ensure => 'installed',
+  }
+
+  # Create virtual environment
+  exec { 'create_virtualenv':
+    command => "python3 -m venv ${venv_path}",
+    user    => 'nodeuser', # replace with your user
+    group   => 'nodeuser', # replace with your user
+    creates => "${venv_path}/bin/activate",
+    require => Package['python3-venv'], # Make sure python3-venv is installed first
+  }
+
+  # Install pgAdmin4 and uWSGI
+  exec { 'install_pgadmin_uwsgi':
+    command => "${venv_path}/bin/pip install pgadmin4 uwsgi",
+    user    => 'nodeuser', # replace with your user
+    group   => 'nodeuser', # replace with your user
+    require => Exec['create_virtualenv'],
+  }
+
+}
