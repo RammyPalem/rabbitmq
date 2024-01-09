@@ -1,27 +1,76 @@
-File "/usr/local/lib/python3.8/dist-packages/gunicorn/app/base.py", line 67, in wsgi
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:     self.callable = self.load()
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:   File "/usr/local/lib/python3.8/dist-packages/gunicorn/app/wsgiapp.py", line 58, in load
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:     return self.load_wsgiapp()
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:   File "/usr/local/lib/python3.8/dist-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:     return util.import_app(self.app_uri)
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:   File "/usr/local/lib/python3.8/dist-packages/gunicorn/util.py", line 371, in import_app
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:     mod = importlib.import_module(module)
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:   File "/usr/lib/python3.8/importlib/__init__.py", line 127, in import_module
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:     return _bootstrap._gcd_import(name[level:], package, level)
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:   File "<frozen importlib._bootstrap>", line 1014, in _gcd_import
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:   File "<frozen importlib._bootstrap>", line 991, in _find_and_load
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:   File "<frozen importlib._bootstrap>", line 975, in _find_and_load_unlocked
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:   File "<frozen importlib._bootstrap>", line 671, in _load_unlocked
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:   File "<frozen importlib._bootstrap_external>", line 848, in exec_module
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:   File "<frozen importlib._bootstrap>", line 219, in _call_with_frames_removed
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:   File "/usr/pgadmin4/web/pgAdmin4.py", line 49, in <module>
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:     import config
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:   File "/usr/pgadmin4/web/config.py", line 32, in <module>
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:     from pgadmin.utils import env, IS_WIN, fs_short_path
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:   File "/usr/pgadmin4/web/pgadmin/__init__.py", line 24, in <module>
-Jan 08 20:28:38 12345.example.com gunicorn[74769]:     from flask import Flask, abort, request, current_app, session, url_for
-Jan 08 20:28:38 12345.example.com gunicorn[74769]: ModuleNotFoundError: No module named 'flask'
-Jan 08 20:28:38 12345.example.com gunicorn[74769]: [2024-01-08 20:28:38 +0000] [74769] [INFO] Worker exiting (pid: 74769)
-Jan 08 20:28:38 12345.example.com gunicorn[74767]: [2024-01-08 20:28:38 +0000] [74767] [ERROR] Worker (pid:74769) exited with code 3
-Jan 08 20:28:38 12345.example.com gunicorn[74767]: [2024-01-08 20:28:38 +0000] [74767] [ERROR] Shutting down: Master
-Jan 08 20:28:38 12345.example.com gunicorn[74767]: [2024-01-08 20:28:38 +0000] [74767] [ERROR] Reason: Worker failed to boot.
+#!/bin/bash
+
+# Update the system
+sudo apt update
+sudo apt upgrade -y
+
+# Install necessary packages
+sudo apt install -y python3 python3-pip virtualenv nginx
+
+# Create a virtual environment
+mkdir /opt/pgadmin4
+cd /opt/pgadmin4
+virtualenv venv
+source venv/bin/activate
+
+# Install pgAdmin4
+pip install pgadmin4
+
+# Set up pgAdmin4
+python3 venv/lib/python3.8/site-packages/pgadmin4/setup.py
+
+# Install uWSGI
+pip install uwsgi
+
+# Configure uWSGI
+echo "[uwsgi]
+module = pgAdmin4:app
+master = true
+processes = 5
+socket = /tmp/pgadmin4.sock
+chmod-socket = 660
+vacuum = true" > /opt/pgadmin4/uwsgi.ini
+
+# Create a uWSGI service
+echo "[Unit]
+Description=uWSGI instance to serve pgAdmin4
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/uwsgi --ini /opt/pgadmin4/uwsgi.ini
+WorkingDirectory=/opt/pgadmin4
+Restart=always
+User=nobody
+Group=nogroup
+
+[Install]
+WantedBy=multi-user.target" > /etc/systemd/system/pgadmin4_uwsgi.service
+
+# Start and enable the uWSGI service
+sudo systemctl start pgadmin4_uwsgi
+sudo systemctl enable pgadmin4_uwsgi
+
+# Configure Nginx
+echo "server {
+    listen 443 ssl;
+    server_name internal-pgadmin4.com;
+
+    ssl_certificate /etc/nginx/ssl/pgadmin4.crt;
+    ssl_certificate_key /etc/nginx/ssl/pgadmin4.key;
+
+    location / {
+        include uwsgi_params;
+        uwsgi_pass unix:/tmp/pgadmin4.sock;
+    }
+}" > /etc/nginx/sites-available/pgadmin4
+
+# Create a symbolic link to enable the Nginx configuration
+sudo ln -s /etc/nginx/sites-available/pgadmin4 /etc/nginx/sites-enabled
+
+# Test Nginx configuration
+sudo nginx -t
+
+# Restart Nginx
+sudo systemctl restart nginx
+
+echo "pgAdmin4 is now set up and can be accessed at https://internal-pgadmin4.com"
