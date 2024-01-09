@@ -1,0 +1,20 @@
+mapped 437520 bytes (427 KB) for 5 cores
+*** Operational MODE: preforking ***
+added /opt/pgadmin4/venv/lib/python3.8/ to pythonpath.
+ModuleNotFoundError: No module named 'pgAdmin4'
+unable to load app 0 (mountpoint='') (callable not found or import error)
+*** no app loaded. going in full dynamic mode ***
+*** uWSGI is running in multiple interpreter mode ***
+spawned uWSGI master process (pid: 205235)
+spawned uWSGI worker 1 (pid: 205236, cores: 1)
+spawned uWSGI worker 2 (pid: 205237, cores: 1)
+spawned uWSGI worker 3 (pid: 205238, cores: 1)
+spawned uWSGI worker 4 (pid: 205239, cores: 1)
+spawned uWSGI worker 5 (pid: 205240, cores: 1)
+SIGINT/SIGTERM received...killing workers...
+worker 1 buried after 1 seconds
+worker 2 buried after 1 seconds
+worker 3 buried after 1 seconds
+worker 4 buried after 1 seconds
+worker 5 buried after 1 seconds
+goodbye to uWSGI.
