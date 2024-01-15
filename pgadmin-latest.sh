@@ -1,13 +1,14 @@
 #!/bin/bash
 
 # Define the installation directory
-INSTALL_DIR="/data/pgadmin/pgadmin4"
+INSTALL_DIR="/data/pgadmin"
 
 # Specify your desired log file path
 LOG_FILE_PATH="/data/log/pgadmin4/pgadmin4.log"
 
 # Create the installation directory if it doesn't exist
 sudo mkdir -p $INSTALL_DIR
+sudo mkdir -p $LOG_FILE_PATH
 
 # Install required packages
 sudo apt update
