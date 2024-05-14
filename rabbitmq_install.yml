@@ -1,0 +1,77 @@
+---
+- name: Install RabbitMQ and Erlang with Management Plugin
+  hosts: rabbitmq_servers  # Replace with your target group or instance name
+  become: true           # Requires root privileges
+
+  tasks:
+    # Update package lists
+    - name: Update apt cache
+      apt: update_cache=yes
+
+    # Add Erlang Solutions repository key
+    - name: Add Erlang Solutions repository key
+      apt_key: url=https://packages.erlang-solutions.com/ubuntu/signing-key.asc state=present
+
+    # Add Erlang repository
+    - name: Add Erlang repository
+      copy:
+        content: "deb https://packages.erlang-solutions.com/ubuntu focal erlang-solutions contrib"
+        dest: /etc/apt/sources.list.d/erlang-solutions.list
+        mode: 0444
+
+    # Update package lists again
+    - name: Update apt cache after adding repository
+      apt: update_cache=yes
+
+    # Install Erlang (includes dependencies)
+    - name: Install Erlang
+      apt: name=esl-erlang state=present
+
+    # Install RabbitMQ server package
+    - name: Install RabbitMQ server
+      apt: name=rabbitmq-server state=present
+
+    # Create admin user with strong password (replace 'your_strong_password' with a secure password)
+    - name: Create RabbitMQ admin user
+      rabbitmq_user:
+        name: admin
+        password: 'your_strong_password'
+        state: present
+
+    # Set admin user permissions
+    - name: Set permissions for admin user
+      rabbitmq_user_permissions:
+        name: admin
+        configure: '*'
+        write: '*'
+        read: '*'
+
+    # Grant administrator tag
+    - name: Grant administrator tag to admin user
+      rabbitmq_user_tag:
+        name: admin
+        tag: administrator
+        state: present
+
+    # Install all available RabbitMQ plugins, including management plugin
+    - name: Install all RabbitMQ plugins, including management plugin
+      rabbitmq_plugin:
+        name: "*"
+        state: enabled
+
+    # Enable management plugin for remote access
+    - name: Enable RabbitMQ management plugin
+      rabbitmq_plugin:
+        name: rabbitmq_management
+        state: enabled
+
+    # Restart RabbitMQ service
+    - name: Restart RabbitMQ service
+      service:
+        name: rabbitmq-server
+        state: restarted
+
+  # Additional notes:
+  # - Consider using RBAC for granular permissions instead of full admin access.
+  # - Regularly update RabbitMQ and Erlang packages for security.
+
